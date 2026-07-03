@@ -459,12 +459,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             for (btn in bar) {
+                val btnColor = if (btn.color.isNotEmpty()) {
+                    try { android.graphics.Color.parseColor(btn.color) } catch (e: Exception) { 0xFF2E5C6E.toInt() }
+                } else 0xFF2E5C6E.toInt()
                 val b = android.widget.Button(this).apply {
                     text = btn.label
                     isAllCaps = false
                     textSize = 11f
                     setTextColor(android.graphics.Color.WHITE)
-                    setBackgroundColor(0xFF2E5C6E.toInt())
+                    setBackgroundColor(btnColor)
                     setPadding(0, 0, 0, 0)
                     minWidth = 0
                     minimumWidth = 0

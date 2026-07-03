@@ -2,10 +2,12 @@ package com.logisticapp.emuladortelnet.toolbar
 
 /**
  * Um botao de barra de ferramentas: rotulo exibido + acao a executar.
+ * color: cor de fundo em hex ARGB (ex: "#FFCC0000"). Vazio = cor padrão petrol.
  */
 data class ToolbarButton(
     val label: String,
-    val action: String
+    val action: String,
+    val color: String = ""
 )
 
 /**

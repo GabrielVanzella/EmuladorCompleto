@@ -68,7 +68,7 @@ class ToolbarConfigActivity : AppCompatActivity() {
             } else {
                 for ((btnIndex, btn) in bar.withIndex()) {
                     container.addView(buttonRow(barIndex, btnIndex, btn.label,
-                        ToolbarCatalog.describe(btn.action)))
+                        ToolbarCatalog.describe(btn.action), btn.color))
                 }
             }
             container.addView(divider())
@@ -185,7 +185,7 @@ class ToolbarConfigActivity : AppCompatActivity() {
     // Linha de botão (chip + descrição + ✎ + ✕)
     // ──────────────────────────────────────────────────────────────────────────
 
-    private fun buttonRow(barIndex: Int, btnIndex: Int, label: String, desc: String): View {
+    private fun buttonRow(barIndex: Int, btnIndex: Int, label: String, desc: String, color: String): View {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -195,6 +195,7 @@ class ToolbarConfigActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
 
+        val chipColor = if (color.isNotEmpty()) parseColor(color) else 0xFF2E5C6E.toInt()
         val chip = TextView(this).apply {
             text = label
             setTextColor(0xFFFFFFFF.toInt())
@@ -202,7 +203,7 @@ class ToolbarConfigActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             minWidth = dp(56)
             setPadding(dp(12), dp(6), dp(12), dp(6))
-            background = chipBackground()
+            background = chipBackground(chipColor)
         }
 
         val descView = TextView(this).apply {
@@ -211,6 +212,10 @@ class ToolbarConfigActivity : AppCompatActivity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             setPadding(dp(14), 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        val colorView = iconBtn("🎨", 0xFF777777.toInt()) {
+            showColorDialog(barIndex, btnIndex, label)
         }
 
         val renameView = iconBtn("✎", 0xFF0F7ABF.toInt()) {
@@ -223,6 +228,7 @@ class ToolbarConfigActivity : AppCompatActivity() {
 
         row.addView(chip)
         row.addView(descView)
+        row.addView(colorView)
         row.addView(renameView)
         row.addView(removeView)
         return row
@@ -263,6 +269,84 @@ class ToolbarConfigActivity : AppCompatActivity() {
                 settings.removeButton(barIndex, btnIndex); buildBars()
             }
             .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Paleta de cores
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private val palette = listOf(
+        "" to "Padrão",
+        "#FF2E5C6E" to "Petrol",
+        "#FFC62828" to "Vermelho",
+        "#FF2E7D32" to "Verde",
+        "#FF1565C0" to "Azul",
+        "#FFE65100" to "Laranja",
+        "#FF6A1B9A" to "Roxo",
+        "#FF00695C" to "Verde-água",
+        "#FF424242" to "Cinza",
+        "#FFF57F17" to "Amarelo",
+        "#FFAD1457" to "Rosa",
+        "#FF37474F" to "Azul-cinza",
+        "#FF4E342E" to "Marrom",
+    )
+
+    private fun showColorDialog(barIndex: Int, btnIndex: Int, label: String) {
+        val cols = 4
+        val grid = android.widget.GridLayout(this).apply {
+            columnCount = cols
+            setPadding(dp(16), dp(12), dp(16), dp(4))
+        }
+
+        palette.forEachIndexed { idx, (hex, name) ->
+            val bgColor = if (hex.isEmpty()) 0xFF2E5C6E.toInt() else parseColor(hex)
+            val cell = android.widget.FrameLayout(this).apply {
+                val size = dp(52)
+                val m = dp(6)
+                val spec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                layoutParams = android.widget.GridLayout.LayoutParams(spec, spec).also {
+                    it.width = size; it.height = size
+                    it.setMargins(m, m, m, m)
+                }
+            }
+            val circle = android.view.View(this).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(bgColor)
+                    if (hex.isEmpty()) setStroke(dp(2), 0xFF888888.toInt())
+                }
+                layoutParams = android.widget.FrameLayout.LayoutParams(dp(44), dp(44)).also {
+                    it.gravity = Gravity.CENTER
+                }
+            }
+            val tick = TextView(this).apply {
+                text = if (idx == 0 && settings.toolbars.getOrNull(barIndex)?.getOrNull(btnIndex)?.color.isNullOrEmpty()) "✓"
+                       else if (hex == settings.toolbars.getOrNull(barIndex)?.getOrNull(btnIndex)?.color) "✓" else ""
+                setTextColor(0xFFFFFFFF.toInt())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                gravity = Gravity.CENTER
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT)
+            }
+            cell.addView(circle)
+            cell.addView(tick)
+            cell.isClickable = true
+            cell.isFocusable = true
+            cell.background = selectableItemBg()
+            cell.setOnClickListener {
+                settings.recolorButton(barIndex, btnIndex, hex)
+                buildBars()
+                Toast.makeText(this, "Cor \"$name\" aplicada em \"$label\"", Toast.LENGTH_SHORT).show()
+            }
+            grid.addView(cell)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Cor do botão \"$label\"")
+            .setView(grid)
+            .setNegativeButton("Fechar", null)
             .show()
     }
 
@@ -312,12 +396,26 @@ class ToolbarConfigActivity : AppCompatActivity() {
         return getDrawable(ov.resourceId)
     }
 
-    private fun chipBackground(): android.graphics.drawable.Drawable {
+    private fun chipBackground(bgColor: Int = 0xFF2E5C6E.toInt()): android.graphics.drawable.Drawable {
         return android.graphics.drawable.GradientDrawable().apply {
             cornerRadius = dp(6).toFloat()
-            setColor(0xFF2E5C6E.toInt())
-            setStroke(dp(1), 0xFF1B4A63.toInt())
+            setColor(bgColor)
+            setStroke(dp(1), darken(bgColor))
         }
+    }
+
+    private fun darken(color: Int): Int {
+        val f = 0.75f
+        val r = ((android.graphics.Color.red(color) * f).toInt()).coerceIn(0, 255)
+        val g = ((android.graphics.Color.green(color) * f).toInt()).coerceIn(0, 255)
+        val b = ((android.graphics.Color.blue(color) * f).toInt()).coerceIn(0, 255)
+        return android.graphics.Color.argb(255, r, g, b)
+    }
+
+    private fun parseColor(hex: String): Int = try {
+        android.graphics.Color.parseColor(hex)
+    } catch (e: Exception) {
+        0xFF2E5C6E.toInt()
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

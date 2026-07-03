@@ -187,7 +187,16 @@ class AppSettings private constructor(context: Context) {
         val bars = toolbars.map { it.toMutableList() }.toMutableList()
         if (barIndex in bars.indices && buttonIndex in bars[barIndex].indices) {
             val old = bars[barIndex][buttonIndex]
-            bars[barIndex][buttonIndex] = ToolbarButton(newLabel, old.action)
+            bars[barIndex][buttonIndex] = ToolbarButton(newLabel, old.action, old.color)
+            toolbars = bars
+        }
+    }
+
+    fun recolorButton(barIndex: Int, buttonIndex: Int, color: String) {
+        val bars = toolbars.map { it.toMutableList() }.toMutableList()
+        if (barIndex in bars.indices && buttonIndex in bars[barIndex].indices) {
+            val old = bars[barIndex][buttonIndex]
+            bars[barIndex][buttonIndex] = ToolbarButton(old.label, old.action, color)
             toolbars = bars
         }
     }
