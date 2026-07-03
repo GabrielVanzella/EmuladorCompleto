@@ -236,6 +236,86 @@ endereço e porta configurados. O resultado aparece como notificação na tela:
 ao proxy para abrir um túnel até o servidor destino. A partir daí, o tráfego Telnet ou SSL passa
 por dentro desse túnel de forma transparente. Proxies com autenticação Basic são suportados.
 
+> **ScanTE Relay:** Para persistência de sessão (tela não trava quando a internet cai), configure aqui o IP do servidor **ScanTE Relay** com porta **2323**. Veja a seção 5.3.
+
+### 5.3. ScanTE Relay Server — Persistência de Sessão ✅
+
+O **ScanTE Relay** é um servidor que roda dentro da rede local da empresa. Ele funciona como um ponto intermediário entre os coletores e o ERP, com um benefício crucial: **quando a internet cai, a sessão não fecha**.
+
+#### O problema que o relay resolve
+
+| Sem relay | Com relay |
+|---|---|
+| Internet cai → app fecha a conexão | Internet cai → tela **congela** |
+| Operador precisa fazer login novamente | Internet volta → sessão **retoma automaticamente** |
+| Dados não salvos se perdidos | Operador continua do ponto onde parou |
+
+#### Arquitetura
+
+```
+[Coletor ScanTE]  ←—— Wi-Fi local (estável) ——→  [ScanTE Relay .exe]  ←—— internet ——→  [ERP/Telnet]
+```
+
+O relay fica na rede local (Wi-Fi) — essa conexão é sempre estável. Só o trecho relay→ERP depende da internet.
+
+#### Instalar o Relay Server (TI da empresa)
+
+**Pré-requisitos:**
+- PC ou servidor Windows na rede local, ligado durante o uso dos coletores
+- Go instalado uma única vez para compilar: https://go.dev/dl/
+
+**Passos:**
+1. Baixe a pasta `scante-relay/` com os arquivos do servidor
+2. Execute `build.bat` — gera o `scante-relay.exe` (sem dependências)
+3. Copie `scante-relay.exe` e `scante-relay.json` para `C:\ScanTE-Relay\`
+4. Edite `scante-relay.json` se necessário (veja campos abaixo)
+5. Execute `scante-relay.exe` — terminal exibe as conexões ativas
+6. Para iniciar com o Windows: crie uma tarefa no Agendador de Tarefas
+
+**scante-relay.json:**
+```json
+{
+  "listen_addr": "0.0.0.0:2323",
+  "keepalive_interval": 30,
+  "reconnect_max_sec": 60,
+  "max_sessions": 0,
+  "dial_timeout_sec": 15,
+  "log_file": "scante-relay.log"
+}
+```
+
+| Campo | Descrição | Padrão |
+|---|---|---|
+| `listen_addr` | Porta de escuta (todos os dispositivos da rede) | `0.0.0.0:2323` |
+| `keepalive_interval` | Segundos entre keepalives enviados ao ERP | `30` |
+| `reconnect_max_sec` | Espera máxima entre tentativas de reconexão | `60` |
+| `max_sessions` | Limite de coletores simultâneos (0 = ilimitado) | `0` |
+| `log_file` | Arquivo de log (relativo ao .exe) | `scante-relay.log` |
+
+#### Configurar o coletor para usar o relay
+
+1. **Configurações → Comunicação → Servidor proxy**
+2. Marque **Usar servidor proxy**
+3. **Endereço:** IP do servidor onde o relay está rodando (ex: `192.168.1.10`)
+4. **Porta:** `2323`
+5. Salve e conecte normalmente
+
+#### Verificar funcionamento
+
+No console do relay, cada conexão é exibida:
+```
+[S0001] Conectado a erp.empresa.com:23
+[S0002] Conectado a erp.empresa.com:23
+Status: 2 sessão(ões) ativa(s)
+```
+
+Quando internet cai e volta:
+```
+[S0001] Servidor caiu — aguardando reconexão
+[S0001] Reconectando a erp.empresa.com:23 em 2s...
+[S0001] Reconectado a erp.empresa.com:23 com sucesso
+```
+
 ---
 
 ## 6. Configurações → Tela

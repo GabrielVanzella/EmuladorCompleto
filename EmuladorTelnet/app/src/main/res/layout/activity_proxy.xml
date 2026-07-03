@@ -30,8 +30,28 @@
             android:orientation="vertical"
             android:paddingBottom="32dp">
 
+            <!-- ===== BANNER RELAY SCANTE ===== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="#E8F5E9"
+                android:padding="12dp"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="ScanTE Relay: para persistência de sessão (internet cai, tela não trava), configure o IP do servidor relay e porta 2323."
+                    android:textSize="12sp"
+                    android:textColor="#2E7D32" />
+            </LinearLayout>
+
             <!-- ===== CONEXÃO AO PROXY ===== -->
-            <TextView style="@style/TnSection" android:text="Servidor proxy" />
+            <TextView style="@style/TnSection" android:text="Servidor proxy / ScanTE Relay" />
 
             <LinearLayout android:id="@+id/row_use_server" style="@style/TnRow">
                 <TextView style="@style/TnLabel" android:text="Usar servidor proxy" />
@@ -40,7 +60,7 @@
             <View style="@style/TnDivider" />
 
             <LinearLayout style="@style/TnRow">
-                <TextView style="@style/TnLabel" android:text="Endereço (IP ou hostname)" />
+                <TextView style="@style/TnLabel" android:text="Endereço (IP do proxy ou relay)" />
                 <EditText android:id="@+id/in_address" style="@style/TnInput"
                     android:inputType="textUri"
                     android:hint="192.168.1.100" />
@@ -48,10 +68,10 @@
             <View style="@style/TnDivider" />
 
             <LinearLayout style="@style/TnRow">
-                <TextView style="@style/TnLabel" android:text="Porta" />
+                <TextView style="@style/TnLabel" android:text="Porta (relay: 2323 | proxy: 3128)" />
                 <EditText android:id="@+id/in_port" style="@style/TnInput"
                     android:inputType="number"
-                    android:hint="3128" />
+                    android:hint="2323" />
             </LinearLayout>
             <View style="@style/TnDivider" />
 
