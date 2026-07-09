@@ -15,75 +15,33 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+/**
+ * ViewModel da tela de gate (LicenseActivity). Só cuida do que essa tela
+ * precisa: sincronizar com o servidor em segundo plano e processar a
+ * ativação por chave que pode chegar via deep link de retorno de pagamento.
+ * A ativação manual por chave (tela "Ativação") não passa por aqui.
+ */
 class LicenseViewModel(application: Application) : AndroidViewModel(application) {
 
     private val licenseManager = LicenseManager(application)
     private val mpManager = MercadoPagoManager()
     private val apiService = LicenseApiService()
 
-    private val _licenseStatus = MutableLiveData<String>()
-    val licenseStatus: LiveData<String> = _licenseStatus
-
-    private val _licenseMessage = MutableLiveData<String>()
-    val licenseMessage: LiveData<String> = _licenseMessage
-
-    private val _daysRemaining = MutableLiveData<Int>()
-    val daysRemaining: LiveData<Int> = _daysRemaining
-
-    private val _licenseType = MutableLiveData<String>()
-    val licenseType: LiveData<String> = _licenseType
-
-    private val _deviceInfo = MutableLiveData<String>()
-    val deviceInfo: LiveData<String> = _deviceInfo
-
-    private val _canContinue = MutableLiveData<Boolean>()
-    val canContinue: LiveData<Boolean> = _canContinue
-
     private val _isLoading = MutableLiveData(false)
     val isLoading: LiveData<Boolean> = _isLoading
 
-    private val _navigateToMain = MutableLiveData(false)
-    val navigateToMain: LiveData<Boolean> = _navigateToMain
-
-    // URL do checkout MP para abrir no browser (consumida uma vez)
-    private val _checkoutUrl = MutableLiveData<String?>(null)
-    val checkoutUrl: LiveData<String?> = _checkoutUrl
+    // Disparado quando uma ativação por deep link é confirmada -> a Activity navega para HostsActivity
+    private val _licenseActivated = MutableLiveData(false)
+    val licenseActivated: LiveData<Boolean> = _licenseActivated
 
     // Mensagem de erro para exibir Toast (consumida uma vez)
     private val _errorMessage = MutableLiveData<String?>(null)
     val errorMessage: LiveData<String?> = _errorMessage
 
-    // Resultado da ativação por chave: Pair(sucesso, mensagem)
-    private val _activationResult = MutableLiveData<Pair<Boolean, String>?>(null)
-    val activationResult: LiveData<Pair<Boolean, String>?> = _activationResult
-
     init {
         licenseManager.initializeLicense()
-        loadLicenseInfo()
-        _deviceInfo.value = licenseManager.getDeviceInfo()
         syncWithServer()
         pingServidor()
-    }
-
-    fun loadLicenseInfo() {
-        try {
-            val info = licenseManager.getLicenseInfo()
-            _licenseStatus.value = info.status
-            _licenseMessage.value = info.message
-            _daysRemaining.value = info.daysRemaining
-            _canContinue.value = !info.isExpired
-            _licenseType.value = when {
-                info.status == "PREMIUM" && info.daysRemaining == -1 -> "Vitalício"
-                info.status == "PREMIUM" -> licenseManager.getLicenseSubtype()
-                    .replaceFirstChar { it.uppercaseChar() }
-                info.status == "TRIAL" -> "Teste"
-                else -> "Expirado"
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Erro ao carregar licença")
-            _errorMessage.value = "Erro ao carregar informações da licença"
-            _canContinue.value = false
-        }
     }
 
     /**
@@ -110,7 +68,6 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
                         licenseManager.revokeLicense()
                         Timber.d("Licença inválida no servidor: ${validacao.erro}")
                     }
-                    loadLicenseInfo()
                 }
             } catch (e: Exception) {
                 Timber.w(e, "Sem conexão com servidor — usando licença local")
@@ -136,27 +93,6 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun continueToApp() {
-        if (licenseManager.hasAccess()) {
-            _navigateToMain.value = true
-        } else {
-            _errorMessage.value = "Trial expirado. Adquira a licença para continuar."
-        }
-    }
-
-    /**
-     * Abre a página de checkout do scante-admin no browser, passando device_id e device_nome.
-     * Após o pagamento, o scante-admin redireciona para emuladortelnet://payment/sucesso?chave=SCTE-XXX.
-     */
-    fun startPayment() {
-        val deviceId   = licenseManager.getDeviceId()
-        val deviceNome = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val url = "${LicenseApiService.BASE_URL}/checkout" +
-            "?device_id=${android.net.Uri.encode(deviceId)}" +
-            "&device_nome=${android.net.Uri.encode(deviceNome)}"
-        _checkoutUrl.value = url
-    }
-
     /**
      * Chamado quando o deep link de sucesso retorna um payment_id.
      * Verifica o status real no MP antes de ativar.
@@ -164,15 +100,13 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
     fun verifyAndActivateLicense(paymentId: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            _licenseMessage.value = "Verificando pagamento..."
             try {
                 val result = mpManager.getPaymentStatus(paymentId)
                 if (result.isSuccess) {
                     val info = result.getOrNull()!!
                     if (info.status == "approved") {
                         licenseManager.upgradeToPremium(info.orderId, info.id)
-                        loadLicenseInfo()
-                        _licenseMessage.value = "Licença ativada com sucesso!"
+                        _licenseActivated.value = true
                         Timber.d("Licença PREMIUM ativada via pagamento $paymentId")
                     } else {
                         _errorMessage.value = "Pagamento com status: ${info.status}. Aguarde a aprovação."
@@ -197,8 +131,7 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
     fun activateLicenseByStatus(status: String) {
         if (status == "approved") {
             licenseManager.upgradeToPremium("mp_redirect", "mp_redirect")
-            loadLicenseInfo()
-            _licenseMessage.value = "Licença ativada com sucesso!"
+            _licenseActivated.value = true
             Timber.d("Licença PREMIUM ativada via redirect status=approved")
         } else {
             _errorMessage.value = "Pagamento com status: $status."
@@ -206,14 +139,11 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
-     * Ativa a licença via chave do scante-admin.
+     * Ativa a licença via chave do scante-admin (chegando por deep link).
      * Chama POST /api/licenca/validar com a chave, device_id e device_nome.
      */
     fun activateByKey(chave: String) {
-        if (chave.isBlank()) {
-            _activationResult.value = Pair(false, "Digite a chave de licença.")
-            return
-        }
+        if (chave.isBlank()) return
         viewModelScope.launch {
             _isLoading.value = true
             try {
@@ -228,30 +158,21 @@ class LicenseViewModel(application: Application) : AndroidViewModel(application)
                             tipo = validacao.tipo,
                             diasRestantes = validacao.diasRestantes
                         )
-                        loadLicenseInfo()
-                        _activationResult.value = Pair(true, "Licença ativada com sucesso!")
+                        _licenseActivated.value = true
                     } else {
-                        _activationResult.value = Pair(false, validacao.erro)
+                        _errorMessage.value = validacao.erro
                     }
                 } else {
                     val msg = result.exceptionOrNull()?.message ?: "Erro de conexão com o servidor."
-                    _activationResult.value = Pair(false, "Não foi possível validar: $msg")
+                    _errorMessage.value = "Não foi possível validar: $msg"
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Erro ao ativar licença por chave")
-                _activationResult.value = Pair(false, "Erro ao ativar licença.")
+                _errorMessage.value = "Erro ao ativar licença."
             } finally {
                 _isLoading.value = false
             }
         }
-    }
-
-    fun onActivationResultShown() {
-        _activationResult.value = null
-    }
-
-    fun onCheckoutOpened() {
-        _checkoutUrl.value = null
     }
 
     fun onErrorShown() {

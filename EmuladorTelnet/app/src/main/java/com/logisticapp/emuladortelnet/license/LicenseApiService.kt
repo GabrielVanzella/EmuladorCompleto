@@ -12,9 +12,10 @@ import java.net.URL
 class LicenseApiService {
 
     companion object {
-        // Altere para a URL de produção após o deploy do scante-admin
-        const val BASE_URL = "http://172.23.3.37:8099"
-        private const val API_SECRET = "SCANTE_API_SECRET_MUDE_ISSO_2026"
+        // Produção: scante-admin em scante.com.br (subpasta /scante-admin/public)
+        const val BASE_URL = "https://scante.com.br/scante-admin/public"
+        // DEVE ser idêntico ao API_SECRET do config.php em produção
+        private const val API_SECRET = "eab28be7c8536e7f5979e5a46b5ec65ba34fdf891d23c5f772e65a4d07057faf"
         private const val TIMEOUT_MS = 15_000
     }
 
@@ -39,6 +40,7 @@ class LicenseApiService {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Authorization", "Bearer $API_SECRET")
+                setRequestProperty("X-API-KEY", API_SECRET)  // fallback: Apache remove o Authorization em hosts compartilhados
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 doOutput = true
@@ -68,6 +70,7 @@ class LicenseApiService {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Authorization", "Bearer $API_SECRET")
+                setRequestProperty("X-API-KEY", API_SECRET)  // fallback: Apache remove o Authorization em hosts compartilhados
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 doOutput = true

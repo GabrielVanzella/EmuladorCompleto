@@ -50,7 +50,10 @@ class LicenseManager(private val context: Context) {
     }
 
     /**
-     * Inicializar licença na primeira execução
+     * Inicializar licença na primeira execução.
+     * Não concede mais trial automático — a ativação agora é sempre por
+     * chave (pedida por e-mail). Instalações antigas que já tinham um TRIAL
+     * concedido continuam com ele intacto (ver hasAccess()).
      */
     fun initializeLicense() {
         if (prefs.getBoolean(KEY_IS_INITIALIZED, false)) {
@@ -58,22 +61,13 @@ class LicenseManager(private val context: Context) {
             return
         }
 
-        val deviceId = getDeviceId()
-        val now = System.currentTimeMillis()
-        val trialEndDate = now + (7L * 24 * 60 * 60 * 1000)
-
         prefs.edit().apply {
-            putString(KEY_DEVICE_ID, deviceId)
-            putString(KEY_LICENSE_TYPE, "TRIAL")
-            putLong(KEY_TRIAL_START_DATE, now)
-            putLong(KEY_TRIAL_END_DATE, trialEndDate)
-            putLong(KEY_PURCHASE_DATE, 0L)
-            putBoolean(KEY_IS_ACTIVE, true)
+            putString(KEY_DEVICE_ID, getDeviceId())
             putBoolean(KEY_IS_INITIALIZED, true)
             apply()
         }
 
-        Timber.d("Licença TRIAL criada - 30 dias grátis")
+        Timber.d("Dispositivo inicializado - sem licença ativa")
     }
 
     /**
@@ -112,15 +106,18 @@ class LicenseManager(private val context: Context) {
      * Verificar se tem acesso ao app
      */
     fun hasAccess(): Boolean {
-        val licenseType = prefs.getString(KEY_LICENSE_TYPE, "TRIAL") ?: "TRIAL"
-        val isActive = prefs.getBoolean(KEY_IS_ACTIVE, true)
+        val licenseType = prefs.getString(KEY_LICENSE_TYPE, "") ?: ""
+        val isActive = prefs.getBoolean(KEY_IS_ACTIVE, false)
 
-        // Premium ativo
+        // Premium ativo (chave vitalícia ou com prazo ainda não vencido)
         if (licenseType == "PREMIUM" && isActive) {
-            return true
+            val expiryDate = prefs.getLong(KEY_TRIAL_END_DATE, 0L)
+            val expired = expiryDate > 0L && System.currentTimeMillis() > expiryDate
+            return !expired
         }
 
-        // Trial válido
+        // Trial válido (compatibilidade com instalações antigas que já
+        // receberam um trial automático antes da remoção desse fluxo)
         if (licenseType == "TRIAL" && isTrialValid()) {
             return true
         }
@@ -273,6 +270,19 @@ class LicenseManager(private val context: Context) {
             putString(KEY_LICENSE_TYPE, "TRIAL")
             putLong(KEY_TRIAL_END_DATE, System.currentTimeMillis() - 1)
             putBoolean(KEY_IS_ACTIVE, true)
+            apply()
+        }
+    }
+
+    /** Libera o app localmente (PREMIUM vitalício), sem passar pelo servidor. Só para testes. */
+    fun debugUnlock() {
+        prefs.edit().apply {
+            putString(KEY_LICENSE_KEY, "DEBUG-UNLOCK")
+            putString(KEY_LICENSE_TYPE, "PREMIUM")
+            putString(KEY_LICENSE_SUBTYPE, "vitalicia")
+            putBoolean(KEY_IS_ACTIVE, true)
+            putBoolean(KEY_IS_INITIALIZED, true)
+            putLong(KEY_TRIAL_END_DATE, 0L) // vitalicia: sem expiracao
             apply()
         }
     }

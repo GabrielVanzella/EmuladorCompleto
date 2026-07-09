@@ -16,11 +16,12 @@ class EmuladorTelnetApplication : Application() {
 
         Timber.d("App inicializado - Sistema de Licença")
 
-        // Inicializar licença na primeira execução do app
+        // Inicializar dados de licença na primeira execução do app
+        // (não concede mais trial automático - ativação é sempre por chave)
         try {
             val licenseManager = LicenseManager(applicationContext)
             licenseManager.initializeLicense()
-            Timber.d("Licença inicializada - Trial de 30 dias")
+            Timber.d("Dispositivo inicializado")
         } catch (e: Exception) {
             Timber.e(e, "Erro ao inicializar licença")
         }

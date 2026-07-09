@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- AppBar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="AJUDA"
+            app:subtitle="ScanTE Ativação"
+            app:titleTextColor="@android:color/white"
+            app:subtitleTextColor="#C6D3DA"
+            app:navigationIcon="@drawable/ic_arrow_back" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Conteudo -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ATIVAÇÃO"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Chave de Ativação"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Este aplicativo ScanTE não foi ativado. Se você possui uma chave de ativação, insira-a para ativar o ScanTE."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Se você recebeu o código de ativação por e-mail, copie-o para a área de transferência e, em seguida, selecione a função &quot;Colar da área de transferência&quot; no menu suspenso."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Se você possui uma chave de ativação gerada em código de barras e o dispositivo possui um leitor, basta lê-la ou selecionar a função de leitura pelo leitor no menu suspenso."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nome de ativação"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="24dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Insira um nome para identificar este dispositivo. Recomendamos que você use o número de série do dispositivo, pois ele é permanente e resiste tanto à restauração de fábrica quanto à substituição da placa-mãe. O endereço MAC do dispositivo também pode ser usado, mas não é 100% confiável. Possui um sistema diferente para nomear e identificar seu(s) dispositivo(s) Android? Use esse nome como seu Nome de Ativação também."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ao inserir um nome de ativação exclusivo neste campo, você poderá solicitar a liberação de uma licença junto à ScanTE caso seu dispositivo quebre ou se você fizer acidentalmente uma restauração de fábrica no dispositivo sem antes desativar a licença."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Comprar o ScanTE"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="24dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Para comprar o ScanTE, visite a loja virtual da ScanTE em www.scante.com.br ou envie um e-mail para scante@scante.com.br."
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:autoLink="web|email"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="24dp" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

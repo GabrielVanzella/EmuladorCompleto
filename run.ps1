@@ -14,7 +14,7 @@ $PROJECT_DIR = "$PSScriptRoot\EmuladorTelnet"
 $APK_PATH    = "$PROJECT_DIR\app\build\outputs\apk\debug\app-debug.apk"
 $PACKAGE     = "com.logisticapp.emuladortelnet"
 $ACTIVITY    = "$PACKAGE/.LicenseActivity"
-$AVD_NAME    = "TestDevice"
+$AVD_NAME    = "Pixel_7"
 $SDK         = "$env:LOCALAPPDATA\Android\Sdk"
 $ADB         = "$SDK\platform-tools\adb.exe"
 $EMULATOR    = "$SDK\emulator\emulator.exe"
@@ -24,29 +24,38 @@ function Write-Ok($msg)   { Write-Host "    [OK] $msg" -ForegroundColor Green }
 function Write-Fail($msg) { Write-Host "    [ERRO] $msg" -ForegroundColor Red; exit 1 }
 
 # ------------------------------------------------------------------
-# 1. Verificar emulador
+# 1. Detectar dispositivo (prioriza celular fisico via USB)
 # ------------------------------------------------------------------
-Write-Step "Verificando emulador..."
-$devices = & $ADB devices 2>$null | Select-String "emulator"
-if ($devices) {
-    Write-Ok "Emulador ja esta rodando."
-} else {
-    Write-Step "Iniciando emulador '$AVD_NAME'..."
-    Start-Process -FilePath $EMULATOR -ArgumentList "-avd $AVD_NAME -no-snapshot-load" -WindowStyle Normal
+Write-Step "Procurando dispositivo Android..."
 
-    Write-Host "    Aguardando boot" -NoNewline
-    $timeout = 120
-    $elapsed = 0
-    while ($elapsed -lt $timeout) {
-        Start-Sleep -Seconds 3
-        $elapsed += 3
-        $booted = & $ADB shell getprop sys.boot_completed 2>$null
+function Get-OnlineDevices { (& $ADB devices) -split "`r?`n" | Where-Object { $_ -match "\tdevice$" } | ForEach-Object { ($_ -split "`t")[0] } }
+
+$SERIAL  = $null
+$online  = Get-OnlineDevices
+$phys    = $online | Where-Object { $_ -notmatch "^emulator-" }
+
+if ($phys) {
+    $SERIAL = @($phys)[0]
+    Write-Ok "Celular fisico conectado: $SERIAL"
+} elseif ($online) {
+    $SERIAL = @($online)[0]
+    Write-Ok "Emulador ja esta rodando: $SERIAL"
+} else {
+    Write-Host "    Nenhum dispositivo encontrado." -ForegroundColor Yellow
+    Write-Host "    Conecte o celular via USB com 'Depuracao USB' ligada e autorize este PC na tela do aparelho." -ForegroundColor Yellow
+    Write-Host "    (Para usar o emulador: & '$EMULATOR' -avd $AVD_NAME -gpu host)" -ForegroundColor DarkGray
+    Write-Host "    Aguardando dispositivo USB..." -NoNewline
+    $waited = 0
+    while ($waited -lt 120) {
+        Start-Sleep -Seconds 2
+        $waited += 2
         Write-Host "." -NoNewline
-        if ($booted -match "1") { break }
+        $phys = Get-OnlineDevices | Where-Object { $_ -notmatch "^emulator-" }
+        if ($phys) { $SERIAL = @($phys)[0]; break }
     }
     Write-Host ""
-    if ($elapsed -ge $timeout) { Write-Fail "Timeout aguardando emulador." }
-    Write-Ok "Emulador pronto!"
+    if (-not $SERIAL) { Write-Fail "Nenhum celular detectado. Verifique cabo, 'Depuracao USB' e a autorizacao na tela do aparelho." }
+    Write-Ok "Celular conectado: $SERIAL"
 }
 
 # ------------------------------------------------------------------
@@ -72,7 +81,7 @@ if (-not $SkipInstall) {
     if (-not (Test-Path $APK_PATH)) {
         Write-Fail "APK nao encontrado: $APK_PATH -- rode sem -SkipBuild primeiro."
     }
-    $install = (& $ADB install -r $APK_PATH 2>&1) -join " "
+    $install = (& $ADB -s $SERIAL install -r $APK_PATH 2>&1) -join " "
     if ($install -notmatch "Success") { Write-Fail "Falha na instalacao: $install" }
     Write-Ok "APK instalado com sucesso."
 } else {
@@ -82,8 +91,8 @@ if (-not $SkipInstall) {
 # ------------------------------------------------------------------
 # 4. Abrir app
 # ------------------------------------------------------------------
-Write-Step "Abrindo TellX no emulador..."
-& $ADB shell am start -n $ACTIVITY | Out-Null
+Write-Step "Abrindo TellX no dispositivo..."
+& $ADB -s $SERIAL shell am start -n $ACTIVITY | Out-Null
 Write-Ok "App iniciado!"
 Write-Host ""
 Write-Host "  TellX rodando. Bom desenvolvimento!" -ForegroundColor Yellow
