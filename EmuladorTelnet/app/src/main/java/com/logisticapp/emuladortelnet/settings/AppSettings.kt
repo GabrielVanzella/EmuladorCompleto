@@ -59,6 +59,24 @@ class AppSettings private constructor(context: Context) {
         get() = prefs.getInt(K_FONT_SIZE, 12)
         set(v) { prefs.edit().putInt(K_FONT_SIZE, v).apply() }
 
+    /**
+     * Redimensionar a tela do terminal com o gesto de pinça (dois dedos).
+     * Ligado: o usuário controla o tamanho com os dedos.
+     * Desligado: usa exatamente o tamanho definido no painel (Tamanho da fonte).
+     */
+    var pinchZoomEnabled: Boolean
+        get() = prefs.getBoolean(K_PINCH_ZOOM, true)
+        set(v) { prefs.edit().putBoolean(K_PINCH_ZOOM, v).apply() }
+
+    /**
+     * Enquanto true, o terminal auto-ajusta a fonte pra preencher a tela ao conectar.
+     * Vira false assim que o usuário define um tamanho manualmente (pinça ou painel),
+     * pra não sobrescrever a escolha dele. O toque duplo "Redefinir" volta pra true.
+     */
+    var fontAutoFit: Boolean
+        get() = prefs.getBoolean(K_FONT_AUTOFIT, true)
+        set(v) { prefs.edit().putBoolean(K_FONT_AUTOFIT, v).apply() }
+
     var fontName: String
         get() = prefs.getString(K_FONT_NAME, "Padrão") ?: "Padrão"
         set(v) { prefs.edit().putString(K_FONT_NAME, v).apply() }
@@ -368,6 +386,8 @@ class AppSettings private constructor(context: Context) {
         private const val K_SHOW_TOOLBAR = "show_toolbar"
         private const val K_LIMIT_VIEW = "limit_view"
         private const val K_DOUBLE_TAP = "double_tap"
+        private const val K_PINCH_ZOOM = "pinch_zoom"
+        private const val K_FONT_AUTOFIT = "font_autofit"
 
         // Cores da tela
         private const val K_COLOR_FG = "color_fg"

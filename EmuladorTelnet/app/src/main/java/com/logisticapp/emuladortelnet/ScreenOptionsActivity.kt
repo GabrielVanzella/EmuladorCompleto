@@ -29,6 +29,7 @@ class ScreenOptionsActivity : AppCompatActivity() {
     private lateinit var valDoubleTap: TextView
     private lateinit var checkCursorBlink: CheckBox
     private lateinit var checkFields3dWhite: CheckBox
+    private lateinit var checkPinchZoom: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +52,7 @@ class ScreenOptionsActivity : AppCompatActivity() {
         valDoubleTap    = findViewById(R.id.val_double_tap)
         checkCursorBlink   = findViewById(R.id.check_cursor_blink)
         checkFields3dWhite = findViewById(R.id.check_fields_3d_white)
+        checkPinchZoom     = findViewById(R.id.check_pinch_zoom)
 
         loadValues()
         setupListeners()
@@ -67,6 +69,15 @@ class ScreenOptionsActivity : AppCompatActivity() {
         valDoubleTap.text   = settings.doubleTapAction
         checkCursorBlink.isChecked   = settings.cursorBlinking
         checkFields3dWhite.isChecked = settings.fields3DWhiteBg
+        checkPinchZoom.isChecked     = settings.pinchZoomEnabled
+        updateFontSizeRowState()
+    }
+
+    /** Quando a pinça está ligada, o tamanho é controlado pelos dedos — o painel fica secundário. */
+    private fun updateFontSizeRowState() {
+        val painelManda = !settings.pinchZoomEnabled
+        findViewById<View>(R.id.row_font_size).alpha = if (painelManda) 1f else 0.4f
+        valFontSize.text = if (painelManda) settings.fontSize.toString() else "pinça"
     }
 
     private fun setupListeners() {
@@ -81,6 +92,11 @@ class ScreenOptionsActivity : AppCompatActivity() {
         findViewById<View>(R.id.row_fields_3d_white).setOnClickListener {
             checkFields3dWhite.isChecked = !checkFields3dWhite.isChecked
             settings.fields3DWhiteBg = checkFields3dWhite.isChecked
+        }
+        findViewById<View>(R.id.row_pinch_zoom).setOnClickListener {
+            checkPinchZoom.isChecked = !checkPinchZoom.isChecked
+            settings.pinchZoomEnabled = checkPinchZoom.isChecked
+            updateFontSizeRowState()
         }
 
         findViewById<View>(R.id.row_font_name).setOnClickListener { pickOption("Nome da fonte",
@@ -114,14 +130,24 @@ class ScreenOptionsActivity : AppCompatActivity() {
     }
 
     private fun pickFontSize() {
-        val sizes = arrayOf("8", "9", "10", "11", "12", "14", "16", "18", "20", "24")
+        // Com a pinça ligada, o tamanho é definido pelos dedos — evita confusão.
+        if (settings.pinchZoomEnabled) {
+            AlertDialog.Builder(this)
+                .setTitle("Tamanho da fonte")
+                .setMessage("O redimensionar com pinça está ligado, então o tamanho é ajustado com dois dedos na tela do terminal.\n\nPara escolher o tamanho aqui no painel, desligue \"Redimensionar com pinça\".")
+                .setPositiveButton("Entendi", null)
+                .show()
+            return
+        }
+        val sizes = arrayOf("8", "10", "12", "14", "16", "18", "20", "24", "28", "32", "36", "40", "44", "48")
         val current = settings.fontSize.toString()
-        val checked = sizes.indexOf(current).takeIf { it >= 0 } ?: 4
+        val checked = sizes.indexOf(current).takeIf { it >= 0 } ?: 2
         AlertDialog.Builder(this)
             .setTitle("Tamanho da fonte")
             .setSingleChoiceItems(sizes, checked) { dialog, which ->
                 val size = sizes[which].toInt()
                 settings.fontSize = size
+                settings.fontAutoFit = false   // escolha manual: não deixa o auto-fit sobrescrever
                 valFontSize.text = size.toString()
                 dialog.dismiss()
             }

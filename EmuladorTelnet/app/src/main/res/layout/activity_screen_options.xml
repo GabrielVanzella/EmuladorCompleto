@@ -120,6 +120,34 @@
                 <ImageView style="@style/ConfigChevron" />
             </LinearLayout>
 
+            <View style="@style/OptionDivider" />
+
+            <!-- Redimensionar com pinça (checkbox) -->
+            <LinearLayout android:id="@+id/row_pinch_zoom" style="@style/ConfigItemRow">
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView style="@style/ConfigItemText"
+                        android:layout_width="match_parent"
+                        android:text="Redimensionar com pinça" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Ligado: ajusta o tamanho com dois dedos. Desligado: usa o Tamanho da fonte acima."
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:paddingTop="2dp" />
+                </LinearLayout>
+                <CheckBox android:id="@+id/check_pinch_zoom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:focusable="false"
+                    android:buttonTint="@color/primary" />
+            </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 
