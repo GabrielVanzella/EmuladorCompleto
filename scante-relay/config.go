@@ -34,7 +34,7 @@ func defaultConfig() Config {
 	return Config{
 		ListenAddr:        "0.0.0.0:2323",
 		KeepaliveInterval: 30,
-		ReconnectMaxSec:   60,
+		ReconnectMaxSec:   15,
 		MaxSessions:       0,
 		DialTimeoutSec:    15,
 		LogFile:           "",

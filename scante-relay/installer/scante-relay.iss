@@ -47,3 +47,27 @@ Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDi
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Iniciar o {#MyAppName} agora"; Flags: postinstall nowait skipifsilent
+
+[Code]
+// Libera a porta 2323 (TCP, entrada) no Firewall do Windows para que os coletores
+// consigam alcançar o relay pela rede local. Como o instalador roda sem privilégios
+// de administrador, esse passo dispara o UAC (elevação) só pra criar a regra —
+// se o usuário recusar, a instalação continua normalmente (só sem a regra).
+procedure LiberarFirewall();
+var
+  ResultCode: Integer;
+  Cmd: string;
+begin
+  Cmd :=
+    '/c netsh advfirewall firewall delete rule name="ScanTE Relay 2323" >nul 2>&1 & ' +
+    'netsh advfirewall firewall add rule name="ScanTE Relay 2323" ' +
+    'dir=in action=allow protocol=TCP localport=2323 profile=any';
+  // 'runas' pede elevação (UAC) apenas para este comando.
+  ShellExec('runas', ExpandConstant('{sys}\cmd.exe'), Cmd, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    LiberarFirewall();
+end;

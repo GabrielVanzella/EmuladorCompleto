@@ -1,7 +1,7 @@
 {
   "listen_addr": "0.0.0.0:2323",
   "keepalive_interval": 30,
-  "reconnect_max_sec": 60,
+  "reconnect_max_sec": 15,
   "max_sessions": 0,
   "dial_timeout_sec": 15,
   "log_file": "scante-relay.log"
