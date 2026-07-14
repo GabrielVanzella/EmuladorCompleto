@@ -340,6 +340,10 @@ class MainActivity : AppCompatActivity() {
                         cursorBlinkHandler.postDelayed(cursorBlinkRunnable, 500)
                     }
                     buildToolbars()
+                    // Calcula o tamanho ideal de fonte só depois que a barra de ferramentas
+                    // já está no layout final (senão o cálculo pega uma altura maior do que
+                    // a real e o texto fica desalinhado com o espaço realmente disponível).
+                    applyAutoFitFontSize()
                     // Teclado habilitado: abre automaticamente ao conectar
                     if (settings.keyboardEnabled) {
                         openKeyboard()
@@ -441,7 +445,7 @@ class MainActivity : AppCompatActivity() {
         val bars = settings.toolbars
         val density = resources.displayMetrics.density
         val screenW = resources.displayMetrics.widthPixels
-        val btnH = (36 * density).toInt()
+        val btnH = (44 * density).toInt()
         val margin = (2 * density).toInt()
         val minBtnW = (72 * density).toInt()
 
@@ -632,10 +636,48 @@ class MainActivity : AppCompatActivity() {
                 binding.terminalOutput.textSize = (sp - 2f).coerceAtLeast(6f)
             }
             "Redefinir tamanho da tela" -> {
-                binding.terminalOutput.textSize = settings.fontSize.toFloat()
+                applyAutoFitFontSize()
             }
             // "Nenhum" → sem ação
         }
+    }
+
+    /**
+     * Calcula o tamanho de fonte ideal para que a grade fixa (largura x altura
+     * definidas em Opções gerais de emulação) preencha a área real disponível na
+     * tela do aparelho, em vez de usar sempre o mesmo tamanho fixo. Roda após o
+     * primeiro layout, quando as dimensões reais da tela já estão disponíveis.
+     */
+    private fun applyAutoFitFontSize() {
+        // Espera o layout realmente terminar (barra de ferramentas já visível) antes de medir —
+        // um post{} simples pode rodar antes da barra entrar, medindo uma altura maior do que a real.
+        val scrollView = binding.scrollView
+        scrollView.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                scrollView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+
+                val rows = settings.generalEmulationOptions.initialHeight.coerceAtLeast(1)
+
+                val availableHeightPx = (scrollView.height -
+                    binding.terminalOutput.paddingTop - binding.terminalOutput.paddingBottom).toFloat()
+                if (availableHeightPx <= 0f) return
+
+                val paint = android.graphics.Paint().apply {
+                    typeface = binding.terminalOutput.typeface
+                    textSize = 100f
+                }
+                val fm = paint.fontMetrics
+                val lineHeightAt100 = fm.descent - fm.ascent
+                if (lineHeightAt100 <= 0f) return
+
+                // Prioriza preencher a altura (24 linhas): a largura (80 colunas) quase sempre é a
+                // dimensão mais apertada num celular estreito, e forçar caber nela deixa a fonte
+                // minúscula. A HorizontalScrollView já existe pra rolar o excesso horizontal.
+                val idealPx = availableHeightPx / rows / lineHeightAt100 * 100f
+                val idealSp = (idealPx / resources.displayMetrics.scaledDensity).coerceIn(8f, 30f)
+                binding.terminalOutput.textSize = idealSp
+            }
+        })
     }
 
     private fun fontFromName(name: String): Typeface = when (name) {

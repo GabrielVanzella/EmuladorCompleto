@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -16,6 +18,39 @@ import (
 const version = "1.0.0"
 
 var activeSessions int64
+var activeLicense *License
+
+// Controle de "dispositivos" (IPs de origem distintos com sessão ativa)
+var (
+	deviceMu    sync.Mutex
+	deviceCount = map[string]int{}
+)
+
+func acquireDevice(ip string, maxDevices int) bool {
+	deviceMu.Lock()
+	defer deviceMu.Unlock()
+	if _, exists := deviceCount[ip]; !exists && maxDevices > 0 && len(deviceCount) >= maxDevices {
+		return false
+	}
+	deviceCount[ip]++
+	return true
+}
+
+func releaseDevice(ip string) {
+	deviceMu.Lock()
+	defer deviceMu.Unlock()
+	deviceCount[ip]--
+	if deviceCount[ip] <= 0 {
+		delete(deviceCount, ip)
+	}
+}
+
+func clientIP(addr string) string {
+	if idx := strings.LastIndex(addr, ":"); idx != -1 {
+		return addr[:idx]
+	}
+	return addr
+}
 
 func main() {
 	fmt.Printf("ScanTE Relay Server v%s\n", version)
@@ -34,6 +69,26 @@ func main() {
 
 	// Configura log com arquivo opcional
 	setupLogger(cfg, exeDir)
+
+	// Licença obrigatória — se faltar/expirar/for inválida, mostra a tela de ativação.
+	licPath := licenseFilePath(exeDir)
+	lic, licErr := loadLicenseFromFile(licPath)
+	if licErr != nil {
+		fmt.Println("Licença necessária — abrindo tela de ativação...")
+		existingText, _ := readFileText(licPath)
+		newLic, rawText, accepted := showLicenseDialog(existingText)
+		if !accepted {
+			fmt.Println("Ativação cancelada. Encerrando.")
+			os.Exit(1)
+		}
+		if err := saveLicenseToFile(licPath, rawText); err != nil {
+			log.Printf("Aviso: não foi possível salvar a licença em %s: %v", licPath, err)
+		}
+		lic = newLic
+	}
+	activeLicense = lic
+	log.Printf("Licença: cliente=%q serial=%s validade=%s sessões=%d dispositivos=%d",
+		lic.Customer, lic.Serial, lic.Expiry, lic.MaxSessions, lic.MaxDevices)
 
 	log.Printf("Configuração carregada de: %s", cfgPath)
 	log.Printf("Escutando em:    %s", cfg.ListenAddr)
@@ -77,21 +132,35 @@ func main() {
 			return
 		}
 
-		// Verifica limite de sessões
-		if cfg.MaxSessions > 0 && int(atomic.LoadInt64(&activeSessions)) >= cfg.MaxSessions {
-			log.Printf("Limite de sessões atingido (%d), recusando %s", cfg.MaxSessions, conn.RemoteAddr())
+		// Verifica limite de sessões (a licença manda; o json só pode restringir mais ainda)
+		maxSessions := activeLicense.MaxSessions
+		if cfg.MaxSessions > 0 && (maxSessions == 0 || cfg.MaxSessions < maxSessions) {
+			maxSessions = cfg.MaxSessions
+		}
+		if maxSessions > 0 && int(atomic.LoadInt64(&activeSessions)) >= maxSessions {
+			log.Printf("Limite de sessões da licença atingido (%d), recusando %s", maxSessions, conn.RemoteAddr())
 			conn.Write([]byte("HTTP/1.0 503 Service Unavailable\r\n\r\n"))
 			conn.Close()
 			continue
 		}
 
-		go handleConn(conn, cfg)
+		// Verifica limite de dispositivos (IPs de origem distintos) da licença
+		ip := clientIP(conn.RemoteAddr().String())
+		if !acquireDevice(ip, activeLicense.MaxDevices) {
+			log.Printf("Limite de dispositivos da licença atingido (%d), recusando %s", activeLicense.MaxDevices, conn.RemoteAddr())
+			conn.Write([]byte("HTTP/1.0 503 Service Unavailable\r\n\r\n"))
+			conn.Close()
+			continue
+		}
+
+		go handleConn(conn, cfg, ip)
 	}
 }
 
-func handleConn(conn net.Conn, cfg Config) {
+func handleConn(conn net.Conn, cfg Config, ip string) {
 	atomic.AddInt64(&activeSessions, 1)
 	defer atomic.AddInt64(&activeSessions, -1)
+	defer releaseDevice(ip)
 
 	remote := conn.RemoteAddr().String()
 	log.Printf("Nova conexão de %s", remote)

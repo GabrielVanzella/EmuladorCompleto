@@ -54,3 +54,15 @@ npm-debug.log
 __pycache__/
 *.py[cod]
 *$py.class
+
+# scante-admin (PHP) — credenciais e dependências locais
+scante-admin/config/config.php
+scante-admin/vendor/
+scante-admin/public/uploads/
+scante-admin/storage/
+
+# scante-relay (Go) — binários e artefatos de build
+scante-relay/*.exe
+scante-relay/dist/
+scante-relay/rsrc_windows_*.syso
+scante-relay/*.lic

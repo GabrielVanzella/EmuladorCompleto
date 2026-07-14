@@ -1,0 +1,21 @@
+# ============================================================
+# ScanTE Admin — proteção da raiz do projeto
+# (necessário quando a pasta fica dentro de public_html)
+# ============================================================
+
+# Não listar arquivos das pastas
+Options -Indexes
+
+# Bloqueia download de arquivos sensíveis (.sql, .md, .example.php, git)
+<FilesMatch "\.(sql|md|lock|example\.php|gitignore|gitattributes)$">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# Impede acesso HTTP direto ao código-fonte e às credenciais.
+# (o app usa essas pastas via disco, não via web — nada quebra)
+RewriteRule ^(app|config)/ - [F,L]
+
+# Ao abrir a raiz da pasta, manda para o painel (public/)
+RewriteRule ^$ public/ [L,R=302]

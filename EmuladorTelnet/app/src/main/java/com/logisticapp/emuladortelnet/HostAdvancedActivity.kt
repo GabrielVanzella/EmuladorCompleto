@@ -7,12 +7,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import com.logisticapp.emuladortelnet.database.SavedConnection
 import com.logisticapp.emuladortelnet.database.TelnetRepository
+import com.logisticapp.emuladortelnet.settings.AppSettings
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class HostAdvancedActivity : AppCompatActivity() {
 
     private lateinit var repository: TelnetRepository
+    private lateinit var settings: AppSettings
     private var hostId: Int = -1
     private var currentHost: SavedConnection? = null
 
@@ -43,6 +45,7 @@ class HostAdvancedActivity : AppCompatActivity() {
         setContentView(R.layout.activity_host_advanced)
 
         repository = TelnetRepository.getInstance(this)
+        settings = AppSettings.get(this)
         hostId = intent.getIntExtra(EXTRA_HOST_ID, -1)
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
@@ -66,6 +69,7 @@ class HostAdvancedActivity : AppCompatActivity() {
         btnSave         = findViewById(R.id.btn_save_advanced)
 
         setupSpinners()
+        loadGlobalValues()
 
         if (hostId > 0) loadHost(hostId)
 
@@ -82,6 +86,19 @@ class HostAdvancedActivity : AppCompatActivity() {
         spinnerEncoding.adapter = encAdapter
     }
 
+    /**
+     * Tipo de Terminal e Keep-Alive são os mesmos valores da Configuração geral
+     * (Configurações > Comunicação > Telnet Opções) — editar aqui, na seta da sessão,
+     * ou lá, tem o mesmo efeito.
+     */
+    private fun loadGlobalValues() {
+        val opts = settings.telnetOptions
+        val termIdx = terminalTypes.indexOfFirst { it.equals(opts.terminalType, ignoreCase = true) }
+            .takeIf { it >= 0 } ?: 1 // default VT220
+        spinnerTerminal.setSelection(termIdx)
+        switchKeepalive.isChecked = !opts.keepAliveType.equals("Desligado", ignoreCase = true)
+    }
+
     private fun loadHost(id: Int) {
         lifecycleScope.launch {
             val host = repository.getConnectionById(id)
@@ -90,7 +107,6 @@ class HostAdvancedActivity : AppCompatActivity() {
                 inputUsername.setText(host.username)
                 inputPassword.setText(host.password)
                 inputTimeout.setText(host.timeoutSeconds.toString())
-                switchKeepalive.isChecked = host.keepAlive
                 switchLocalecho.isChecked = host.localEcho
                 inputKey1Label.setText(host.customKey1Label)
                 inputKey1Value.setText(host.customKey1Value)
@@ -98,9 +114,6 @@ class HostAdvancedActivity : AppCompatActivity() {
                 inputKey2Value.setText(host.customKey2Value)
                 inputKey3Label.setText(host.customKey3Label)
                 inputKey3Value.setText(host.customKey3Value)
-
-                val termIdx = terminalTypes.indexOf(host.terminalType).takeIf { it >= 0 } ?: 0
-                spinnerTerminal.setSelection(termIdx)
 
                 val encIdx = encodings.indexOf(host.encoding).takeIf { it >= 0 } ?: 0
                 spinnerEncoding.setSelection(encIdx)
@@ -119,10 +132,8 @@ class HostAdvancedActivity : AppCompatActivity() {
         val updated = base.copy(
             username        = inputUsername.text.toString().trim(),
             password        = inputPassword.text.toString(),
-            terminalType    = terminalTypes[spinnerTerminal.selectedItemPosition],
             encoding        = encodings[spinnerEncoding.selectedItemPosition],
             timeoutSeconds  = timeout,
-            keepAlive       = switchKeepalive.isChecked,
             localEcho       = switchLocalecho.isChecked,
             customKey1Label = inputKey1Label.text.toString().ifBlank { "F1" },
             customKey1Value = inputKey1Value.text.toString(),
@@ -130,6 +141,15 @@ class HostAdvancedActivity : AppCompatActivity() {
             customKey2Value = inputKey2Value.text.toString(),
             customKey3Label = inputKey3Label.text.toString().ifBlank { "F3" },
             customKey3Value = inputKey3Value.text.toString()
+        )
+
+        // Tipo de Terminal e Keep-Alive são compartilhados com a Configuração geral
+        val opts = settings.telnetOptions
+        settings.telnetOptions = opts.copy(
+            terminalType = terminalTypes[spinnerTerminal.selectedItemPosition],
+            keepAliveType = if (switchKeepalive.isChecked)
+                opts.keepAliveType.takeIf { !it.equals("Desligado", ignoreCase = true) } ?: "TCP"
+            else "Desligado"
         )
 
         lifecycleScope.launch {

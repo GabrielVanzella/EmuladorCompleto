@@ -46,6 +46,13 @@ class TelnetRepository(private val context: Context) {
         }
     }
 
+    /** Aplica o mesmo Nome/Host/Porta a todas as sessões salvas (conexão única compartilhada). */
+    suspend fun updateAllConnectionsIdentity(name: String, host: String, port: Int) {
+        val list = _connections.value.map { it.copy(name = name, host = host, port = port) }
+        persistAndEmit(list)
+        Timber.d("Nome/Host/Porta aplicados a todas as ${list.size} sessoes")
+    }
+
     suspend fun deleteConnection(id: Int) {
         val list = _connections.value.filter { it.id != id }.toMutableList()
         persistAndEmit(list)

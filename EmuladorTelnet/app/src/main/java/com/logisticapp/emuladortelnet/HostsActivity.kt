@@ -14,8 +14,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.logisticapp.emuladortelnet.data.ConnectionState
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -74,7 +76,7 @@ class HostsActivity : AppCompatActivity() {
         observeHosts()
 
         findViewById<FloatingActionButton>(R.id.fab_add).setOnClickListener {
-            openHostConfig(hostId = -1)
+            openNewSessionConfig()
         }
 
         maybeAutoConnect()
@@ -94,7 +96,9 @@ class HostsActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         adapter = HostsAdapter(
-            onItemClick = { host -> openHostConfig(hostId = host.id) },
+            // Tocar numa sessão sempre conecta/retoma — editar Nome/Host/Porta agora é só
+            // pelo menu de 3 pontinhos ("Editar Conexão"), que vale pra todas de uma vez.
+            onItemClick = { host -> connectToHost(host) },
             onMenuClick = { host, anchor -> showPopupMenu(host, anchor) }
         )
         val recycler = findViewById<RecyclerView>(R.id.hosts_recycler)
@@ -134,7 +138,8 @@ class HostsActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.menu_settings -> { startActivity(Intent(this, ConfigMenuActivity::class.java)); true }
-            R.id.menu_new      -> { openHostConfig(hostId = -1); true }
+            R.id.menu_new      -> { openNewSessionConfig(); true }
+            R.id.menu_edit_connection -> { editarConexaoCompartilhada(); true }
             R.id.menu_remove   -> { menuRemove(); true }
             R.id.menu_rename   -> { menuRename(); true }
             R.id.menu_help     -> { menuHelp(); true }
@@ -271,15 +276,14 @@ class HostsActivity : AppCompatActivity() {
 
     private fun showPopupMenu(host: SavedConnection, anchor: View) {
         val popup = PopupMenu(this, anchor)
-        val connectLabel = if (SessionStore.isActive(host.id)) "Retomar" else "Conectar"
+        val ativa = SessionStore.isActive(host.id)
+        val connectLabel = if (ativa) "Retomar" else "Conectar"
         popup.menu.add(0, 1, 0, connectLabel)
-        popup.menu.add(0, 2, 1, "Editar")
         popup.menu.add(0, 3, 2, "Configuracao")
         popup.menu.add(0, 4, 3, "Remover")
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> connectToHost(host)
-                2 -> openHostConfig(hostId = host.id)
                 3 -> openHostAdvanced(hostId = host.id)
                 4 -> confirmDelete(host)
             }
@@ -289,21 +293,74 @@ class HostsActivity : AppCompatActivity() {
     }
 
     private fun connectToHost(host: SavedConnection) {
+        val jaAtiva = SessionStore.isActive(host.id)
         val result = SessionStore.openOrResume(this, host.id, host.name, host.host, host.port)
         if (result == null) {
             toast("Máximo de 2 sessões ativas. Desconecte uma para abrir outra.")
             return
         }
-        val (slotId, _) = result
+        val (slotId, vm) = result
+
+        // Sessão já ativa/conectada: só retoma, sem validar de novo.
+        if (jaAtiva || vm.connectionState.value == ConnectionState.CONNECTED) {
+            goToMain(slotId)
+            return
+        }
+
+        toast("Conectando a ${host.host}:${host.port}...")
+        vm.connect(host.host, host.port.toString())
+        vm.connectionState.observe(this, object : Observer<ConnectionState> {
+            override fun onChanged(state: ConnectionState) {
+                when (state) {
+                    ConnectionState.CONNECTED -> {
+                        vm.connectionState.removeObserver(this)
+                        goToMain(slotId)
+                    }
+                    ConnectionState.ERROR -> {
+                        vm.connectionState.removeObserver(this)
+                        SessionStore.close(slotId)
+                        toast("Não foi possível conectar a ${host.host}:${host.port}")
+                    }
+                    else -> { /* CONNECTING / DISCONNECTED: aguarda */ }
+                }
+            }
+        })
+    }
+
+    private fun goToMain(slotId: Int) {
         val intent = Intent(this, MainActivity::class.java).apply {
             putExtra(MainActivity.EXTRA_SLOT_ID, slotId)
         }
         startActivity(intent)
     }
 
-    private fun openHostConfig(hostId: Int) {
+    /**
+     * Edita Nome/Host/Porta de uma vez só, aplicando a mesma conexão a todas as sessões
+     * salvas — não existe mais "Editar" por sessão individual no menu da seta.
+     */
+    private fun editarConexaoCompartilhada() {
+        if (currentHosts.isEmpty()) {
+            toast("Nenhuma sessão cadastrada. Use o + para criar a primeira.")
+            return
+        }
         val intent = Intent(this, HostConfigActivity::class.java)
-        if (hostId > 0) intent.putExtra(HostConfigActivity.EXTRA_HOST_ID, hostId)
+        intent.putExtra(HostConfigActivity.EXTRA_EDIT_ALL, true)
+        startActivity(intent)
+    }
+
+    /**
+     * Nova sessão via "+": se já existe algum host salvo, reaproveita o mesmo Host/Porta
+     * (bloqueados) — só o Nome fica livre. Evita erro de digitação de quem for criar
+     * sessões novas no dia a dia.
+     */
+    private fun openNewSessionConfig() {
+        val referencia = currentHosts.maxByOrNull { it.lastUsed }
+        val intent = Intent(this, HostConfigActivity::class.java)
+        if (referencia != null) {
+            intent.putExtra(HostConfigActivity.EXTRA_PREFILL_HOST, referencia.host)
+            intent.putExtra(HostConfigActivity.EXTRA_PREFILL_PORT, referencia.port)
+            intent.putExtra(HostConfigActivity.EXTRA_LOCK_HOST_PORT, true)
+        }
         startActivity(intent)
     }
 

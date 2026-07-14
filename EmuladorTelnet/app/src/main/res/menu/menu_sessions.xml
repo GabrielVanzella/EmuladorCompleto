@@ -13,6 +13,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/menu_edit_connection"
+        android:title="Editar Conexão"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/menu_remove"
         android:title="Remover"
         app:showAsAction="never" />

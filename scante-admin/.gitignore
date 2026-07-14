@@ -1,0 +1,21 @@
+# Configuração local (contém credenciais)
+config/config.php
+
+# Dependências
+vendor/
+node_modules/
+
+# Uploads e cache
+public/uploads/
+storage/
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
