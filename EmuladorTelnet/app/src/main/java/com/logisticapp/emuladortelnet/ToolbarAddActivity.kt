@@ -83,17 +83,11 @@ class ToolbarAddActivity : AppCompatActivity() {
         // Divisor
         container.addView(divider())
 
-        // ---- Seção: Navegação ----
-        addSectionHeader(container, "Navegação")
-        addButtons(container, ToolbarCatalog.available.subList(0, 8))
-        addSectionHeader(container, "Edição")
-        addButtons(container, ToolbarCatalog.available.subList(8, 16))
-        addSectionHeader(container, "Teclas de função")
-        addButtons(container, ToolbarCatalog.available.subList(16, 28))
-        addSectionHeader(container, "Ctrl")
-        addButtons(container, ToolbarCatalog.available.subList(28, 38))
-        addSectionHeader(container, "Conexão")
-        addButtons(container, ToolbarCatalog.available.subList(38, ToolbarCatalog.available.size))
+        // ---- Seções do catálogo (Navegação, Edição, Teclas F, Ctrl, Conexão) ----
+        for ((titulo, botoes) in ToolbarCatalog.availableSections) {
+            addSectionHeader(container, titulo)
+            addButtons(container, botoes)
+        }
     }
 
     private fun addSectionHeader(container: LinearLayout, title: String) {

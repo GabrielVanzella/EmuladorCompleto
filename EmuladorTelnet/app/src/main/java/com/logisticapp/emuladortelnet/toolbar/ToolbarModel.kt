@@ -33,6 +33,10 @@ object ToolbarCatalog {
             "ESC"     -> byteArrayOf(esc)
             "ENTER"   -> byteArrayOf(13)
             "TAB"     -> byteArrayOf(9)
+            // BS (0x08): é o que ERPs tipo Protheus/AS-400 esperam para apagar o
+            // caractere anterior. O DELCHAR (0x7F) abaixo é o "Del" do VT, que
+            // muitos hosts não interpretam como apagar.
+            "BACKSPACE" -> byteArrayOf(8)
             "BACKTAB" -> byteArrayOf(esc, '['.code.toByte(), 'Z'.code.toByte())
             "HOME"    -> byteArrayOf(esc, '['.code.toByte(), 'H'.code.toByte())
             "END"     -> byteArrayOf(esc, '['.code.toByte(), 'F'.code.toByte())
@@ -68,7 +72,7 @@ object ToolbarCatalog {
     /** Descricao curta da acao (mostrada na tela de configuracao, ao lado do rotulo). */
     fun describe(action: String): String = when {
         action.startsWith("TEXT:") -> "Texto \"${action.removePrefix("TEXT:")}\""
-        action.startsWith("CTRL_") -> action.replace("_", "+").replaceFirstChar { 'C' }
+        action.startsWith("CTRL_") -> "Ctrl+" + action.removePrefix("CTRL_")
         action == "UP"         -> "↑ Seta cima"
         action == "DOWN"       -> "↓ Seta baixo"
         action == "LEFT"       -> "← Seta esquerda"
@@ -78,6 +82,7 @@ object ToolbarCatalog {
         action == "TAB"        -> "Tab"
         action == "HOME"       -> "Home"
         action == "END"        -> "End"
+        action == "BACKSPACE"  -> "Backspace (apaga à esquerda)"
         action == "DELCHAR"    -> "Del (apaga char)"
         action == "BACKTAB"    -> "Shift+Tab"
         action == "INSERT"     -> "Insert"
@@ -121,6 +126,11 @@ object ToolbarCatalog {
             ToolbarButton("Home","HOME"), ToolbarButton("End","END"),
             ToolbarButton("PgUp","PREVS"), ToolbarButton("PgDn","NEXTS")
         ),
+        "Edição" to listOf(
+            ToolbarButton("⌫","BACKSPACE"), ToolbarButton("Del","DELCHAR"),
+            ToolbarButton("Enter","ENTER"), ToolbarButton("Tab","TAB"),
+            ToolbarButton("Esc","ESC"), ToolbarButton("Ins","INSERT")
+        ),
         "Teclas F" to listOf(
             ToolbarButton("F1","F1"),  ToolbarButton("F2","F2"),
             ToolbarButton("F3","F3"),  ToolbarButton("F4","F4"),
@@ -147,7 +157,8 @@ object ToolbarCatalog {
             ToolbarButton("↑","UP"),  ToolbarButton("↓","DOWN"),
             ToolbarButton("←","LEFT"),ToolbarButton("→","RIGHT"),
             ToolbarButton("Esc","ESC"), ToolbarButton("Enter","ENTER"),
-            ToolbarButton("Tab","TAB"), ToolbarButton("Del","DELCHAR")
+            ToolbarButton("Tab","TAB"), ToolbarButton("⌫","BACKSPACE"),
+            ToolbarButton("Del","DELCHAR")
         ),
         // Barra 3: Ctrl + teclas de sistema
         listOf(
@@ -160,53 +171,43 @@ object ToolbarCatalog {
         emptyList()
     )
 
-    /** Botoes disponiveis na tela "Adicionar botoes". */
-    val available: List<ToolbarButton> = listOf(
-        // Navegação
-        ToolbarButton("↑", "UP"),
-        ToolbarButton("↓", "DOWN"),
-        ToolbarButton("←", "LEFT"),
-        ToolbarButton("→", "RIGHT"),
-        ToolbarButton("Home", "HOME"),
-        ToolbarButton("End", "END"),
-        ToolbarButton("PgUp", "PREVS"),
-        ToolbarButton("PgDn", "NEXTS"),
-        // Edição
-        ToolbarButton("Esc", "ESC"),
-        ToolbarButton("Enter", "ENTER"),
-        ToolbarButton("Tab", "TAB"),
-        ToolbarButton("⇤", "BACKTAB"),
-        ToolbarButton("Del", "DELCHAR"),
-        ToolbarButton("Ins", "INSERT"),
-        ToolbarButton("Copy", "COPY"),
-        ToolbarButton("Paste", "PASTE"),
-        // Funções F
-        ToolbarButton("F1", "F1"),
-        ToolbarButton("F2", "F2"),
-        ToolbarButton("F3", "F3"),
-        ToolbarButton("F4", "F4"),
-        ToolbarButton("F5", "F5"),
-        ToolbarButton("F6", "F6"),
-        ToolbarButton("F7", "F7"),
-        ToolbarButton("F8", "F8"),
-        ToolbarButton("F9", "F9"),
-        ToolbarButton("F10", "F10"),
-        ToolbarButton("F11", "F11"),
-        ToolbarButton("F12", "F12"),
-        // Ctrl
-        ToolbarButton("Ctrl+A", "CTRL_A"),
-        ToolbarButton("Ctrl+C", "CTRL_C"),
-        ToolbarButton("Ctrl+D", "CTRL_D"),
-        ToolbarButton("Ctrl+E", "CTRL_E"),
-        ToolbarButton("Ctrl+I", "CTRL_I"),
-        ToolbarButton("Ctrl+K", "CTRL_K"),
-        ToolbarButton("Ctrl+P", "CTRL_P"),
-        ToolbarButton("Ctrl+W", "CTRL_W"),
-        ToolbarButton("Ctrl+Y", "CTRL_Y"),
-        ToolbarButton("Ctrl+Z", "CTRL_Z"),
-        // Conexão
-        ToolbarButton("Conn.", "CONNECT"),
-        ToolbarButton("Break", "BREAK"),
-        ToolbarButton("Desc.", "DISCONNECT")
+    /**
+     * Botões disponíveis na tela "Adicionar botões", agrupados por seção.
+     * A tela monta a lista a partir daqui — assim dá pra incluir/remover botões
+     * sem quebrar nada (antes as seções eram fatiadas por índices fixos).
+     */
+    val availableSections: List<Pair<String, List<ToolbarButton>>> = listOf(
+        "Navegação" to listOf(
+            ToolbarButton("↑", "UP"),
+            ToolbarButton("↓", "DOWN"),
+            ToolbarButton("←", "LEFT"),
+            ToolbarButton("→", "RIGHT"),
+            ToolbarButton("Home", "HOME"),
+            ToolbarButton("End", "END"),
+            ToolbarButton("PgUp", "PREVS"),
+            ToolbarButton("PgDn", "NEXTS")
+        ),
+        "Edição" to listOf(
+            ToolbarButton("Esc", "ESC"),
+            ToolbarButton("Enter", "ENTER"),
+            ToolbarButton("Tab", "TAB"),
+            ToolbarButton("⇤", "BACKTAB"),
+            ToolbarButton("⌫", "BACKSPACE"),
+            ToolbarButton("Del", "DELCHAR"),
+            ToolbarButton("Ins", "INSERT"),
+            ToolbarButton("Copy", "COPY"),
+            ToolbarButton("Paste", "PASTE")
+        ),
+        "Teclas de função" to (1..12).map { ToolbarButton("F$it", "F$it") },
+        // Todas as combinações Ctrl+A .. Ctrl+Z
+        "Ctrl" to ('A'..'Z').map { ToolbarButton("Ctrl+$it", "CTRL_$it") },
+        "Conexão" to listOf(
+            ToolbarButton("Conn.", "CONNECT"),
+            ToolbarButton("Break", "BREAK"),
+            ToolbarButton("Desc.", "DISCONNECT")
+        )
     )
+
+    /** Todos os botões disponíveis, sem separação por seção. */
+    val available: List<ToolbarButton> = availableSections.flatMap { it.second }
 }

@@ -115,6 +115,7 @@ class TerminalEmulator(
         private const val ESC = '\u001B'
         private const val NUL = '\u0000'
         private const val BEL = '\u0007'
+        private val DEL = 127.toChar()   // DEL (0x7F): controle, nunca imprimivel
     }
 
     /**
@@ -160,7 +161,9 @@ class TerminalEmulator(
                 }
             }
             '\t' -> { consecutiveBells = 0; cursorCol = ((cursorCol / 8) + 1) * 8; if (cursorCol >= cols) cursorCol = cols - 1 }
-            NUL -> { /* ignorar */ }
+            // NUL e DEL são caracteres de controle: nunca viram texto na tela.
+            // (Sem isso, um DEL ecoado pelo host aparecia como quadradinho "□".)
+            NUL, DEL -> { /* ignorar */ }
             '' -> { if (useSiso) charsetG1Active = true  }  // SO: shift out → G1
             '' -> { if (useSiso) charsetG1Active = false }  // SI: shift in  → G0
             BEL -> {
