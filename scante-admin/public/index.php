@@ -56,6 +56,10 @@ $router->post('/admin/configuracoes/limpar-chave',   'Admin/ConfiguracoesControl
 $router->get( '/admin/pagamentos',                  'Admin/PagamentosController', 'index');
 $router->post('/admin/pagamentos/registrar',        'Admin/PagamentosController', 'registrar');
 $router->get( '/admin/pagamentos/{id}/excluir',     'Admin/PagamentosController', 'excluir');
+$router->get( '/admin/chamados',                    'Admin/ChamadosController',  'index');
+$router->get( '/admin/chamados/{id}',               'Admin/ChamadosController',  'ver');
+$router->post('/admin/chamados/{id}/responder',     'Admin/ChamadosController',  'responder');
+$router->post('/admin/chamados/{id}/status',        'Admin/ChamadosController',  'status');
 $router->get( '/admin/licencas',                    'Admin/LicencasController',  'index');
 $router->post('/admin/licencas/gerar',              'Admin/LicencasController',  'gerar');
 $router->get( '/admin/licencas/{id}',               'Admin/LicencasController',  'ver');
@@ -71,6 +75,11 @@ $router->get( '/empresa',                                      'Empresa/Dashboar
 $router->get( '/empresa/licencas',                             'Empresa/LicencasController',  'index');
 $router->get( '/empresa/licencas/{id}',                        'Empresa/LicencasController',  'ver');
 $router->post('/empresa/licencas/{id}/transferir',             'Empresa/LicencasController',  'solicitarTransferencia');
+$router->get( '/empresa/chamados',                             'Empresa/ChamadosController',  'index');
+$router->get( '/empresa/chamados/novo',                        'Empresa/ChamadosController',  'criar');
+$router->post('/empresa/chamados/novo',                        'Empresa/ChamadosController',  'criar');
+$router->get( '/empresa/chamados/{id}',                        'Empresa/ChamadosController',  'ver');
+$router->post('/empresa/chamados/{id}/responder',              'Empresa/ChamadosController',  'responder');
 
 // API REST (app Android)
 $router->post('/api/licenca/validar',               'Api/LicencaController',      'validar');

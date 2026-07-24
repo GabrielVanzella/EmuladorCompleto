@@ -52,6 +52,7 @@
     <a href="<?= APP_URL ?>/admin/configuracoes" class="nav-link"><i class="bi bi-sliders"></i> Gateways de Pagamento</a>
 
     <div class="nav-section">Suporte</div>
+    <a href="<?= APP_URL ?>/admin/chamados" class="nav-link"><i class="bi bi-headset"></i> Chamados</a>
     <a href="<?= APP_URL ?>/admin/manual" class="nav-link" target="_blank"><i class="bi bi-file-earmark-pdf"></i> Manual do App</a>
 
     <div class="nav-section">Conta</div>

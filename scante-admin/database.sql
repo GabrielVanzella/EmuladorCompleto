@@ -126,6 +126,36 @@ CREATE TABLE relay_licencas (
   FOREIGN KEY (criado_por) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Chamados de suporte (portal da empresa)
+CREATE TABLE chamados (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  empresa_id    INT UNSIGNED NOT NULL,
+  licenca_id    INT UNSIGNED NULL,
+  usuario_id    INT UNSIGNED NULL,
+  assunto       VARCHAR(200) NOT NULL,
+  status        ENUM('aberto','em_andamento','resolvido') NOT NULL DEFAULT 'aberto',
+  criado_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+  FOREIGN KEY (licenca_id) REFERENCES licencas(id) ON DELETE SET NULL,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
+  INDEX idx_empresa (empresa_id),
+  INDEX idx_status (status),
+  INDEX idx_atualizado (atualizado_em)
+) ENGINE=InnoDB;
+
+CREATE TABLE chamado_mensagens (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  chamado_id  INT UNSIGNED NOT NULL,
+  autor_tipo  ENUM('empresa','admin') NOT NULL,
+  autor_id    INT UNSIGNED NULL,
+  autor_nome  VARCHAR(150) NULL,
+  mensagem    TEXT NOT NULL,
+  criado_em   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (chamado_id) REFERENCES chamados(id) ON DELETE CASCADE,
+  INDEX idx_chamado (chamado_id)
+) ENGINE=InnoDB;
+
 -- ============================================================
 -- Usuário admin padrão
 -- Senha: admin123 (ALTERE após o primeiro login!)
