@@ -10,14 +10,17 @@ USE scante_admin;
 
 -- Empresas clientes
 CREATE TABLE empresas (
-  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome       VARCHAR(200) NOT NULL,
-  cnpj       VARCHAR(20),
-  email      VARCHAR(150) NOT NULL,
-  telefone   VARCHAR(30),
-  contato    VARCHAR(150),
-  ativo      TINYINT(1) NOT NULL DEFAULT 1,
-  criada_em  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  nome          VARCHAR(200) NOT NULL,
+  cnpj          VARCHAR(20),
+  email         VARCHAR(150) NOT NULL,
+  telefone      VARCHAR(30),
+  contato       VARCHAR(150),
+  ativo         TINYINT(1) NOT NULL DEFAULT 1,
+  config_tema   TEXT NULL,                    -- JSON: cores + cabeçalho (personalização do app)
+  config_teclas TEXT NULL,                    -- JSON: barras de ferramentas
+  config_versao INT UNSIGNED NOT NULL DEFAULT 0,
+  criada_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- Usuários (admin + usuários das empresas)

@@ -114,13 +114,14 @@ class MainActivity : AppCompatActivity() {
         if (limitLines != null) binding.terminalOutput.maxLines = limitLines
         else binding.terminalOutput.maxLines = Int.MAX_VALUE
 
-        // Cores da tela
-        binding.terminalOutput.setBackgroundColor(settings.colorBackground)
-        binding.scrollView.setBackgroundColor(settings.colorBackground)
-        binding.statusText.setTextColor(settings.colorStatusForeground)
-        if (settings.colorStatusBackground != 0) {
-            binding.appBar.setBackgroundColor(settings.colorStatusBackground)
+        // Cores da tela (a personalização da empresa, quando ativa, sobrepõe)
+        binding.terminalOutput.setBackgroundColor(effBg())
+        binding.scrollView.setBackgroundColor(effBg())
+        binding.statusText.setTextColor(effStatusFg())
+        if (effStatusBg() != 0) {
+            binding.appBar.setBackgroundColor(effStatusBg())
         }
+        aplicarCabecalhoEmpresa()
 
         repository = TelnetRepository.getInstance(this)
 
@@ -206,8 +207,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyViewModelSettings() {
-        viewModel.setForegroundColor(settings.colorForeground)
-        viewModel.setFieldColor(settings.colorInputField)
+        viewModel.setForegroundColor(effFg())
+        viewModel.setFieldColor(effField())
         viewModel.setTerminalType(settings.telnetOptions.terminalType)
         viewModel.setBinaryMode(settings.telnetOptions.binaryMode)
         viewModel.setSimulateParity(settings.telnetOptions.simulateParity)
@@ -455,7 +456,8 @@ class MainActivity : AppCompatActivity() {
     /** Gera as barras de ferramentas com scroll horizontal quando há muitos botões. */
     private fun buildToolbars() {
         binding.controlKeysBar.removeAllViews()
-        val bars = settings.toolbars
+        // Teclas da empresa (quando definidas) têm prioridade sobre as locais
+        val bars = cc().toolbars(this) ?: settings.toolbars
         val density = resources.displayMetrics.density
         val screenW = resources.displayMetrics.widthPixels
         val btnH = (44 * density).toInt()
@@ -740,6 +742,33 @@ class MainActivity : AppCompatActivity() {
                 settings.fontSize = idealSp.toInt()
             }
         })
+    }
+
+    // ------------------------------------------------------------------
+    // Personalização da empresa (CompanyConfigStore) — quando ativa, sobrepõe
+    // as cores locais e mostra o cabeçalho com a marca.
+    // ------------------------------------------------------------------
+    private fun cc() = com.logisticapp.emuladortelnet.settings.CompanyConfigStore
+    private fun effFg()       = cc().colorForeground(this)       ?: settings.colorForeground
+    private fun effBg()       = cc().colorBackground(this)       ?: settings.colorBackground
+    private fun effField()    = cc().colorField(this)            ?: settings.colorInputField
+    private fun effStatusFg() = cc().colorStatusForeground(this) ?: settings.colorStatusForeground
+    private fun effStatusBg() = cc().colorStatusBackground(this) ?: settings.colorStatusBackground
+
+    /** Mostra logo + nome da empresa no topo, se ela configurou o cabeçalho. */
+    private fun aplicarCabecalhoEmpresa() {
+        val logo = binding.companyLogo
+        if (cc().headerShow(this)) {
+            val file = cc().logoFile(this)
+            if (file != null) {
+                logo.setImageURI(android.net.Uri.fromFile(file))
+                logo.visibility = View.VISIBLE
+            } else {
+                logo.visibility = View.GONE
+            }
+        } else {
+            logo.visibility = View.GONE
+        }
     }
 
     private fun fontFromName(name: String): Typeface = when (name) {

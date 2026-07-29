@@ -273,6 +273,39 @@ class Licenca extends Model {
             'dias_restantes' => $diasRestantes,
             'vitalicia'      => $licenca['tipo'] === 'vitalicia',
             'mensagem'       => 'Licença válida.',
+            // Personalização da empresa (tema + teclas) — o app aplica e trava.
+            // null = empresa não personalizou nada (app usa o padrão dele).
+            'config'         => $this->configDaEmpresa($licenca['empresa_id'] ?? null),
+        ];
+    }
+
+    /** Monta o bloco de personalização (tema/teclas/logo) da empresa dona da licença. */
+    private function configDaEmpresa(?int $empresaId): ?array {
+        if (!$empresaId) return null;
+
+        $emp = $this->db->queryOne(
+            "SELECT config_tema, config_teclas, config_versao FROM empresas WHERE id = ?",
+            [$empresaId]
+        );
+        if (!$emp) return null;
+
+        $versao = (int)($emp['config_versao'] ?? 0);
+        $tema   = !empty($emp['config_tema'])   ? json_decode($emp['config_tema'], true)   : null;
+        $teclas = !empty($emp['config_teclas']) ? json_decode($emp['config_teclas'], true) : null;
+
+        $logoPath = __DIR__ . '/../../public/uploads/logos/' . $empresaId . '.png';
+        $logoUrl  = is_file($logoPath)
+            ? APP_URL . '/uploads/logos/' . $empresaId . '.png?v=' . $versao
+            : null;
+
+        // Nada configurado ainda: não manda config (app fica no padrão).
+        if ($tema === null && $teclas === null && $logoUrl === null) return null;
+
+        return [
+            'versao'   => $versao,
+            'tema'     => $tema,
+            'teclas'   => $teclas,
+            'logo_url' => $logoUrl,
         ];
     }
 

@@ -35,6 +35,8 @@
   <nav>
     <a href="<?= APP_URL ?>/empresa" class="nav-link"><i class="bi bi-speedometer2"></i> Início</a>
     <a href="<?= APP_URL ?>/empresa/licencas" class="nav-link"><i class="bi bi-key"></i> Minhas Licenças</a>
+    <a href="<?= APP_URL ?>/empresa/aparencia" class="nav-link"><i class="bi bi-palette"></i> Aparência</a>
+    <a href="<?= APP_URL ?>/empresa/teclas" class="nav-link"><i class="bi bi-keyboard"></i> Teclas</a>
     <a href="<?= APP_URL ?>/empresa/chamados" class="nav-link"><i class="bi bi-headset"></i> Chamados</a>
     <a href="<?= APP_URL ?>/logout" class="nav-link mt-4"><i class="bi bi-box-arrow-right"></i> Sair</a>
   </nav>

@@ -75,6 +75,10 @@ $router->get( '/empresa',                                      'Empresa/Dashboar
 $router->get( '/empresa/licencas',                             'Empresa/LicencasController',  'index');
 $router->get( '/empresa/licencas/{id}',                        'Empresa/LicencasController',  'ver');
 $router->post('/empresa/licencas/{id}/transferir',             'Empresa/LicencasController',  'solicitarTransferencia');
+$router->get( '/empresa/aparencia',                            'Empresa/AparenciaController', 'index');
+$router->post('/empresa/aparencia/salvar',                     'Empresa/AparenciaController', 'salvar');
+$router->get( '/empresa/teclas',                               'Empresa/TeclasController',    'index');
+$router->post('/empresa/teclas/salvar',                        'Empresa/TeclasController',    'salvar');
 $router->get( '/empresa/chamados',                             'Empresa/ChamadosController',  'index');
 $router->get( '/empresa/chamados/novo',                        'Empresa/ChamadosController',  'criar');
 $router->post('/empresa/chamados/novo',                        'Empresa/ChamadosController',  'criar');

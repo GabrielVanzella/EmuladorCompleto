@@ -44,6 +44,17 @@ class ScreenColorsActivity : AppCompatActivity() {
         settings.applyOrientation(this)
         setContentView(R.layout.activity_screen_colors)
 
+        // Cores definidas pela empresa: tela travada neste aparelho.
+        if (com.logisticapp.emuladortelnet.settings.CompanyConfigStore.hasTheme(this)) {
+            android.widget.Toast.makeText(
+                this,
+                "As cores são definidas pela sua empresa e não podem ser alteradas neste aparelho.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
+        }
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)

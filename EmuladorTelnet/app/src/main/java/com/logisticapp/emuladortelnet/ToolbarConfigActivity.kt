@@ -29,6 +29,17 @@ class ToolbarConfigActivity : AppCompatActivity() {
         settings.applyOrientation(this)
         setContentView(R.layout.activity_toolbar_config)
 
+        // Teclas definidas pela empresa: tela travada neste aparelho.
+        if (com.logisticapp.emuladortelnet.settings.CompanyConfigStore.hasKeys(this)) {
+            android.widget.Toast.makeText(
+                this,
+                "As teclas são definidas pela sua empresa e não podem ser alteradas neste aparelho.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            finish()
+            return
+        }
+
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)

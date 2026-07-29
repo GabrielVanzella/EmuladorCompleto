@@ -25,7 +25,9 @@ class LicenseApiService {
         val tipo: String = "",
         val diasRestantes: Int = -1,
         val expiraEm: String = "",
-        val erro: String = ""
+        val erro: String = "",
+        // JSON do bloco "config" (personalização da empresa). "" = empresa não personalizou.
+        val configJson: String = ""
     )
 
     suspend fun pingServidor(
@@ -90,13 +92,15 @@ class LicenseApiService {
             val json = JSONObject(response)
 
             if (json.optBoolean("valida", false)) {
+                val config = if (json.isNull("config")) "" else json.optJSONObject("config")?.toString() ?: ""
                 Result.success(
                     ValidacaoResult(
                         sucesso = true,
                         chave = chave.trim().uppercase(),
                         tipo = json.optString("tipo", "vitalicia"),
                         diasRestantes = if (json.isNull("dias_restantes")) -1 else json.optInt("dias_restantes", -1),
-                        expiraEm = json.optString("expira_em")
+                        expiraEm = json.optString("expira_em"),
+                        configJson = config
                     )
                 )
             } else {

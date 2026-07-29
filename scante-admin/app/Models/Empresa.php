@@ -40,6 +40,27 @@ class Empresa extends Model {
         return $this->db->query("SELECT id, nome FROM empresas WHERE ativo = 1 ORDER BY nome");
     }
 
+    /** Salva o tema (cores + cabeçalho) do app e incrementa a versão do config. */
+    public function salvarTema(int $id, string $temaJson): void {
+        $this->db->execute(
+            "UPDATE empresas SET config_tema = ?, config_versao = config_versao + 1 WHERE id = ?",
+            [$temaJson, $id]
+        );
+    }
+
+    /** Salva as barras de ferramentas (teclas) do app e incrementa a versão do config. */
+    public function salvarTeclas(int $id, string $teclasJson): void {
+        $this->db->execute(
+            "UPDATE empresas SET config_teclas = ?, config_versao = config_versao + 1 WHERE id = ?",
+            [$teclasJson, $id]
+        );
+    }
+
+    /** Incrementa a versão do config (usado ao trocar a logo, por ex.). */
+    public function bumpConfigVersao(int $id): void {
+        $this->db->execute("UPDATE empresas SET config_versao = config_versao + 1 WHERE id = ?", [$id]);
+    }
+
     /**
      * Busca uma empresa pelo CNPJ, ignorando formatação (pontos/traço/barra).
      * Usado no checkout público pra não deixar a mesma empresa se cadastrar

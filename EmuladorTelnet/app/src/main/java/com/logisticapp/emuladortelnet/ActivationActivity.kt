@@ -101,6 +101,9 @@ class ActivationActivity : AppCompatActivity() {
                             tipo = validacao.tipo,
                             diasRestantes = validacao.diasRestantes
                         )
+                        // Já aplica a personalização da empresa (tema + teclas + logo)
+                        com.logisticapp.emuladortelnet.settings.CompanyConfigStore
+                            .save(applicationContext, validacao.configJson)
                         showResult(true, "Licença ativada com sucesso!")
                         startActivity(Intent(this@ActivationActivity, HostsActivity::class.java))
                         finishAffinity()
