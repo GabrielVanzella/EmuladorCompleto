@@ -62,6 +62,17 @@
             android:padding="4dp"
             android:visibility="gone" />
 
+        <!-- Mostrar/ocultar a barra de teclas personalizadas -->
+        <ImageButton
+            android:id="@+id/keysToggle"
+            android:layout_width="40dp"
+            android:layout_height="34dp"
+            android:src="@drawable/ic_keys_toggle"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Mostrar/ocultar barra de teclas"
+            android:layout_marginEnd="6dp"
+            android:visibility="gone" />
+
         <ImageButton
             android:id="@+id/keyboardToggle"
             android:layout_width="40dp"

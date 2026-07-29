@@ -66,6 +66,9 @@ class MainActivity : AppCompatActivity() {
     // Detecção de duplo toque
     private var lastTapTime = 0L
 
+    // Barra de teclas personalizadas oculta manualmente pelo usuário (botão no topo)
+    private var toolbarHidden = false
+
     // Redimensionar o terminal com pinça (dois dedos)
     private lateinit var scaleDetector: android.view.ScaleGestureDetector
     private var scaling = false
@@ -286,6 +289,7 @@ class MainActivity : AppCompatActivity() {
 
         // Botao de mostrar/ocultar teclado (ao lado de Desconectar)
         binding.keyboardToggle.setOnClickListener { toggleKeyboard() }
+        binding.keysToggle.setOnClickListener { toggleKeysBar() }
 
         // Toque simples: abre teclado e rola ao fim; duplo toque: ação configurada
         binding.terminalOutput.setOnClickListener {
@@ -311,6 +315,7 @@ class MainActivity : AppCompatActivity() {
                     binding.statusText.setTextColor(getColor(android.R.color.darker_gray))
                     binding.disconnectButton.isEnabled = false
                     binding.keyboardToggle.visibility = android.view.View.GONE
+                    binding.keysToggle.visibility = android.view.View.GONE
                     cursorBlinkHandler.removeCallbacks(cursorBlinkRunnable)
                     // "Sempre" mantém a barra visível mesmo desconectado
                     if (settings.showToolbar != "Sempre") {
@@ -342,8 +347,12 @@ class MainActivity : AppCompatActivity() {
                     binding.statusText.setTextColor(getColor(android.R.color.holo_green_dark))
                     binding.disconnectButton.isEnabled = true
                     binding.keyboardToggle.visibility = android.view.View.VISIBLE
+                    binding.keysToggle.visibility = android.view.View.VISIBLE
+                    binding.keysToggle.alpha = if (toolbarHidden) 0.5f else 1f
                     if (settings.showToolbar != "Nunca") {
-                        binding.controlKeysBar.visibility = android.view.View.VISIBLE
+                        // Respeita a escolha manual do usuário (botão de ocultar teclas)
+                        binding.controlKeysBar.visibility =
+                            if (toolbarHidden) android.view.View.GONE else android.view.View.VISIBLE
                     }
                     if (settings.cursorBlinking) {
                         cursorBlinkHandler.removeCallbacks(cursorBlinkRunnable)
@@ -451,6 +460,15 @@ class MainActivity : AppCompatActivity() {
         binding.terminalOutput.requestFocus()
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+    }
+
+    /** Mostra/oculta a barra de teclas personalizadas (botão no topo, ao lado do teclado). */
+    private fun toggleKeysBar() {
+        toolbarHidden = !toolbarHidden
+        binding.controlKeysBar.visibility =
+            if (toolbarHidden) android.view.View.GONE else android.view.View.VISIBLE
+        // Feedback visual no botão: meio apagado quando a barra está oculta
+        binding.keysToggle.alpha = if (toolbarHidden) 0.5f else 1f
     }
 
     /** Gera as barras de ferramentas com scroll horizontal quando há muitos botões. */
